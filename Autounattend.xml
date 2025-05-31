@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<unattend xmlns="urn:schemas-microsoft-com:unattend">
+<settings pass="windowsPE">
+    <component name="Microsoft-Windows-International-Core-WinPE" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+        <SetupUILanguage>
+            <UILanguage>en-US</UILanguage>
+        </SetupUILanguage>
+        <InputLocale>en-US</InputLocale>
+        <SystemLocale>en-US</SystemLocale>
+        <UILanguage>en-US</UILanguage>
+        <UserLocale>en-US</UserLocale>
+    </component>
+    <component name="Microsoft-Windows-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+        <ImageInstall>
+            <OSImage>
+                <InstallFrom>
+                    <MetaData wcm:action="add">
+                        <Key>/IMAGE/INDEX</Key>
+                        <Value>2</Value>
+                    </MetaData>
+                </InstallFrom>
+                <InstallTo>
+                    <DiskID>0</DiskID>
+                    <PartitionID>1</PartitionID>
+                </InstallTo>
+            </OSImage>
+        </ImageInstall>
+        <UserData>
+            <AcceptEula>true</AcceptEula>
+            <!-- Brak klucza dla wersji Evaluation -->
+        </UserData>
+        <DiskConfiguration>
+            <Disk wcm:action="add">
+                <CreatePartitions>
+                    <CreatePartition wcm:action="add">
+                        <Order>1</Order>
+                        <Extend>true</Extend>
+                        <Type>Primary</Type>
+                    </CreatePartition>
+                </CreatePartitions>
+                <ModifyPartitions>
+                    <ModifyPartition wcm:action="add">
+                        <Order>1</Order>
+                        <PartitionID>1</PartitionID>
+                        <Format>NTFS</Format>
+                        <Label>Windows</Label>
+                        <Letter>C</Letter>
+                        <Active>true</Active>
+                    </ModifyPartition>
+                </ModifyPartitions>
+                <DiskID>0</DiskID>
+                <WillWipeDisk>true</WillWipeDisk>
+            </Disk>
+        </DiskConfiguration>
+    </component>
+</settings>
+<settings pass="specialize">
+    <component name="Microsoft-Windows-Shell-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+        <ComputerName>DC1</ComputerName>
+        <TimeZone>Central European Standard Time</TimeZone>
+    </component>
+    <!-- Konfiguracja sieci - automatyczne ustawienia dla obu adapterów -->
+    <component name="Microsoft-Windows-TCPIP" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+        <Interfaces>
+            <Interface wcm:action="add">
+                <Identifier>Ethernet</Identifier> <!-- Dla drugiego adaptera (host-only) -->
+                <Ipv4Settings>
+                    <DhcpEnabled>false</DhcpEnabled>
+                </Ipv4Settings>
+                <UnicastIpAddresses>
+                    <IpAddress wcm:action="add" wcm:keyValue="1">192.168.56.10/24</IpAddress>
+                </UnicastIpAddresses>
+                <Routes>
+                    <Route wcm:action="add">
+                        <Identifier>1</Identifier>
+                        <Prefix>0.0.0.0/0</Prefix>
+                        <NextHopAddress>192.168.56.1</NextHopAddress>
+                        <Metric>10</Metric>
+                    </Route>
+                </Routes>
+            </Interface>
+        </Interfaces>
+    </component>
+</settings>
+<settings pass="oobeSystem">
+    <component name="Microsoft-Windows-Shell-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+        <AutoLogon>
+            <Password>
+                <Value>P@ssw0rd</Value>
+                <PlainText>true</PlainText>
+            </Password>
+            <Username>Administrator</Username>
+            <Enabled>true</Enabled>
+            <LogonCount>1</LogonCount>
+        </AutoLogon>
+        <UserAccounts>
+            <AdministratorPassword>
+                <Value>P@ssw0rd</Value>
+                <PlainText>true</PlainText>
+            </AdministratorPassword>
+        </UserAccounts>
+        <OOBE>
+            <HideEULAPage>true</HideEULAPage>
+            <HideLocalAccountScreen>true</HideLocalAccountScreen>
+            <HideOEMRegistrationScreen>true</HideOEMRegistrationScreen>
+            <HideOnlineAccountScreens>true</HideOnlineAccountScreens>
+            <HideWirelessSetupInOOBE>true</HideWirelessSetupInOOBE>
+            <ProtectYourPC>1</ProtectYourPC>
+        </OOBE>
+    </component>
+</settings>
+</unattend>
