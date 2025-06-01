@@ -34,3 +34,12 @@ resource "null_resource" "copy_files" {
     interpreter = ["cmd", "/C"]
   }
 }
+
+resource "null_resource" "execute_dc_script" {
+  depends_on = [null_resource.copy_files]
+
+  provisioner "local-exec" {
+    command     = "run_remotely.bat"
+    interpreter = ["cmd", "/C"]
+  }
+}
