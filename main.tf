@@ -89,3 +89,33 @@ resource "null_resource" "create_shares" {
     interpreter = ["cmd", "/C"]
   }
 }
+
+# Importowanie Windows 10 z OVA
+resource "null_resource" "import_win10" {
+  depends_on = [null_resource.create_shares] # Po zakończeniu konfiguracji domeny
+
+  provisioner "local-exec" {
+    command     = "import_win10.bat"
+    interpreter = ["cmd", "/C"]
+  }
+}
+
+# Czekanie na uruchomienie maszyny Windows 10
+resource "null_resource" "wait_for_win10_boot" {
+  depends_on = [null_resource.import_win10]
+
+  provisioner "local-exec" {
+    command     = "echo Czekam na uruchomienie Windows 10... && ping -n 180 127.0.0.1 > nul"
+    interpreter = ["cmd", "/C"]
+  }
+}
+
+# Dołączanie komputera do domeny
+resource "null_resource" "join_win10_to_domain" {
+  depends_on = [null_resource.wait_for_win10_boot]
+
+  provisioner "local-exec" {
+    command     = "join_domain_win10.bat"
+    interpreter = ["cmd", "/C"]
+  }
+}
