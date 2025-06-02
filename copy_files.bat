@@ -1,6 +1,7 @@
 @echo off
 echo Czekam na pelne uruchomienie servera
 timeout /t 30
+
 echo Mappowanie dysku
 net use Z: \\192.168.56.106\c$ /user:Administrator zaq1@WSX /persistent:no
 
