@@ -1,31 +1,26 @@
-# Skrypt tworzący jednostki organizacyjne i użytkowników w Active Directory
 Start-Transcript -Path "C:\temp\create_users.log" -Force
-Write-Host "========== ROZPOCZECIE TWORZENIA STRUKTURY OU I UZYTKOWNIKOW: $(Get-Date) =========="
+Write-Host "========== STARTED CREATING OU STRUCTURE AND USERS: $(Get-Date) =========="
 
-# Domena
 $domainDN = (Get-ADDomain).DistinguishedName
 
-# 1. Tworzenie jednostek organizacyjnych
 $OUList = @("Dyrektorzy", "Handlowcy", "Magazynierzy")
 foreach ($OU in $OUList) {
     try {
-        # Sprawdź czy OU już istnieje
         $ouExists = Get-ADOrganizationalUnit -Filter "Name -eq '$OU'" -ErrorAction SilentlyContinue
-      
+  
         if (-not $ouExists) {
-            Write-Host "Tworzenie jednostki organizacyjnej: $OU"
+            Write-Host "Creating Organizational Unit: $OU"
             New-ADOrganizationalUnit -Name $OU -Path $domainDN -ProtectedFromAccidentalDeletion $true
         }
         else {
-            Write-Host "Jednostka organizacyjna $OU już istnieje"
+            Write-Host "Organizational Unit $OU already exists"
         }
     }
     catch {
-        Write-Host "Błąd przy tworzeniu OU $OU : $_" -ForegroundColor Red
+        Write-Host "Error creating OU $OU : $_" -ForegroundColor Red
     }
 }
 
-# 2. Tworzenie użytkowników w każdej jednostce organizacyjnej
 $password = ConvertTo-SecureString "P@`$`$w0rD" -AsPlainText -Force
 $users = @{
     "Dyrektorzy"   = @("dyrektor1", "dyrektor2")
@@ -35,14 +30,13 @@ $users = @{
 
 foreach ($OU in $OUList) {
     $ouDN = "OU=$OU,$domainDN"
-  
+
     foreach ($user in $users[$OU]) {
         try {
-            # Sprawdź czy użytkownik już istnieje
             $userExists = Get-ADUser -Filter "SamAccountName -eq '$user'" -ErrorAction SilentlyContinue
-          
+      
             if (-not $userExists) {
-                Write-Host "Tworzenie użytkownika $user w $OU"
+                Write-Host "Creating user $user in $OU"
                 New-ADUser -Name $user `
                     -SamAccountName $user `
                     -UserPrincipalName "$user@corp.local" `
@@ -53,14 +47,14 @@ foreach ($OU in $OUList) {
                     -DisplayName $user
             }
             else {
-                Write-Host "Użytkownik $user już istnieje"
+                Write-Host "User $user already exists"
             }
         }
         catch {
-            Write-Host "Błąd przy tworzeniu użytkownika $user : $_" -ForegroundColor Red
+            Write-Host "Error creating user $user : $_" -ForegroundColor Red
         }
     }
 }
 
-Write-Host "========== ZAKONCZENIE TWORZENIA STRUKTURY: $(Get-Date) =========="
+Write-Host "========== FINISHED CREATING OU STRUCTURE AND USERS: $(Get-Date) =========="
 Stop-Transcript

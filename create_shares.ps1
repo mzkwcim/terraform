@@ -1,20 +1,17 @@
-# Skrypt tworzący udziały sieciowe z odpowiednimi uprawnieniami
 Start-Transcript -Path "C:\temp\create_shares.log" -Force
-Write-Host "========== ROZPOCZECIE TWORZENIA UDZIALOW SIECIOWYCH: $(Get-Date) =========="
+Write-Host "========== STARTED CREATING NETWORK SHARES: $(Get-Date) =========="
 
-# Główny katalog na udziały
 $sharesRoot = "C:\Shares"
 if (-not (Test-Path $sharesRoot)) {
     New-Item -Path $sharesRoot -ItemType Directory -Force | Out-Null
-    Write-Host "Utworzono główny katalog udziałów: $sharesRoot"
+    Write-Host "Created main shares directory: $sharesRoot"
 }
 
-# Definicje udziałów i uprawnień
 $shares = @(
     @{
-        Name        = "PUBLICZNY"
-        Path        = "$sharesRoot\PUBLICZNY"
-        Description = "Udział dostępny dla wszystkich grup"
+        Name        = "PUBLIC"
+        Path        = "$sharesRoot\PUBLIC"
+        Description = "Share accessible to all groups"
         Permissions = @(
             @{Group = "CORP\Dyrektorzy"; Access = "Full" }
             @{Group = "CORP\Handlowcy"; Access = "Full" }
@@ -22,9 +19,9 @@ $shares = @(
         )
     },
     @{
-        Name        = "PRYWATNY"
-        Path        = "$sharesRoot\PRYWATNY"
-        Description = "Udział z ograniczonym dostępem"
+        Name        = "PRIVATE"
+        Path        = "$sharesRoot\PRIVATE"
+        Description = "Share with restricted access"
         Permissions = @(
             @{Group = "CORP\Dyrektorzy"; Access = "Full" }
             @{Group = "CORP\Handlowcy"; Access = "Read" }
@@ -32,9 +29,9 @@ $shares = @(
         )
     },
     @{
-        Name        = "DANE"
-        Path        = "$sharesRoot\DANE"
-        Description = "Udział dla danych z różnymi poziomami dostępu"
+        Name        = "DATA"
+        Path        = "$sharesRoot\DATA"
+        Description = "Share for data with different access levels"
         Permissions = @(
             @{Group = "CORP\Dyrektorzy"; Access = "None" }
             @{Group = "CORP\Handlowcy"; Access = "Read" }
@@ -43,7 +40,6 @@ $shares = @(
     }
 )
 
-# Funkcja mapująca poziom dostępu na uprawnienia NTFS i udostępniania
 function Set-SharePermissions {
     param (
         [string]$Path,
@@ -51,84 +47,72 @@ function Set-SharePermissions {
         [string]$Access
     )
 
-    # Resetujemy dziedziczenie uprawnień
     icacls $Path /reset | Out-Null
 
-    # Ustawiamy uprawnienia w zależności od poziomu dostępu
     switch ($Access) {
         "Full" {
-            Write-Host "Ustawianie pełnego dostępu dla $Group do $Path"
+            Write-Host "Setting full access for $Group to $Path"
             icacls $Path /grant "${Group}:(OI)(CI)F" | Out-Null
         }
         "Read" {
-            Write-Host "Ustawianie dostępu do odczytu dla $Group do $Path"
+            Write-Host "Setting read access for $Group to $Path"
             icacls $Path /grant "${Group}:(OI)(CI)RX" | Out-Null
         }
         "None" {
-            Write-Host "Brak dostępu dla $Group do $Path"
-            # W przypadku braku dostępu nie dodajemy żadnych uprawnień
+            Write-Host "No access for $Group to $Path"
         }
     }
 }
 
-# Utworzenie grup AD jeśli nie istnieją (zabezpieczenie)
 $groups = @("Dyrektorzy", "Handlowcy", "Magazynierzy")
 foreach ($group in $groups) {
     try {
         $groupObj = Get-ADGroup -Identity $group -ErrorAction SilentlyContinue
         if (-not $groupObj) {
-            Write-Host "Tworzenie grupy $group w AD"
+            Write-Host "Creating group $group in AD"
             New-ADGroup -Name $group -GroupScope Global -GroupCategory Security
         }
     }
     catch {
-        Write-Host "Błąd przy sprawdzaniu/tworzeniu grupy $group $_" -ForegroundColor Yellow
-        Write-Host "Upewnij się, że grupy te są już utworzone w AD"
+        Write-Host "Error checking/creating group $group $_" -ForegroundColor Yellow
+        Write-Host "Ensure these groups are already created in AD"
     }
 }
 
-# Tworzenie i konfiguracja udziałów
 foreach ($share in $shares) {
-    # Tworzenie katalogów
     if (-not (Test-Path $share.Path)) {
         New-Item -Path $share.Path -ItemType Directory -Force | Out-Null
-        Write-Host "Utworzono katalog: $($share.Path)"
+        Write-Host "Created directory: $($share.Path)"
     }
     else {
-        Write-Host "Katalog $($share.Path) już istnieje"
+        Write-Host "Directory $($share.Path) already exists"
     }
 
-    # Dodanie przykładowych plików
     $sampleFilePath = "$($share.Path)\README.txt"
-    "To jest przykładowy plik w udziale $($share.Name)" | Out-File -FilePath $sampleFilePath -Force
-    Write-Host "Utworzono przykładowy plik w $sampleFilePath"
+    "This is a sample file in the $($share.Name) share" | Out-File -FilePath $sampleFilePath -Force
+    Write-Host "Created sample file in $sampleFilePath"
 
-    # Resetowanie uprawnień i usuwanie dziedziczenia
     icacls $share.Path /reset | Out-Null
     icacls $share.Path /inheritance:r | Out-Null
 
-    # Dodanie podstawowych uprawnień dla Administratorów i SYSTEM
     icacls $share.Path /grant "Administrators:(OI)(CI)F" | Out-Null
     icacls $share.Path /grant "SYSTEM:(OI)(CI)F" | Out-Null
 
-    # Ustawianie uprawnień dla grup
     foreach ($perm in $share.Permissions) {
         Set-SharePermissions -Path $share.Path -Group $perm.Group -Access $perm.Access
     }
 
-    # Usuwanie istniejącego udziału (jeśli istnieje)
     $existingShare = Get-SmbShare -Name $share.Name -ErrorAction SilentlyContinue
     if ($existingShare) {
-        Write-Host "Usuwanie istniejącego udziału: $($share.Name)"
+        Write-Host "Removing existing share: $($share.Name)"
         Remove-SmbShare -Name $share.Name -Force
     }
 
-    # Tworzenie udziału sieciowego
-    Write-Host "Tworzenie udziału sieciowego: $($share.Name)"
+    Write-Host "Creating network share: $($share.Name)"
     New-SmbShare -Name $share.Name -Path $share.Path -Description $share.Description -FullAccess "Everyone" | Out-Null
 
-    Write-Host "Udział $($share.Name) został pomyślnie utworzony i skonfigurowany"
+    Write-Host "Share $($share.Name) successfully created and configured"
 }
 
-Write-Host "========== ZAKONCZENIE TWORZENIA UDZIALOW SIECIOWYCH: $(Get-Date) =========="
+Write-Host "========== FINISHED CREATING NETWORK SHARES: $(Get-Date) =========="
 Stop-Transcript

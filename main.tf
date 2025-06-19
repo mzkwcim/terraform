@@ -48,7 +48,7 @@ resource "null_resource" "wait_for_dc_ready" {
   depends_on = [null_resource.execute_dc_script]
 
   provisioner "local-exec" {
-    command     = "echo Czekam 15 minut na zakończenie promocji DC... && ping -n 900 127.0.0.1 > nul"
+    command     = "echo Waiting 15 minutes for DC promotion to complete... && ping -n 900 127.0.0.1 > nul"
     interpreter = ["cmd", "/C"]
   }
 }
@@ -62,7 +62,6 @@ resource "null_resource" "configure_additional_services" {
   }
 }
 
-# Konfiguracja OU i użytkowników
 resource "null_resource" "create_users_and_ous" {
   depends_on = [null_resource.configure_additional_services]
 
@@ -90,9 +89,8 @@ resource "null_resource" "create_shares" {
   }
 }
 
-# Importowanie Windows 10 z OVA
 resource "null_resource" "import_win10" {
-  depends_on = [null_resource.create_shares] # Po zakończeniu konfiguracji domeny
+  depends_on = [null_resource.create_shares]
 
   provisioner "local-exec" {
     command     = "import_win10.bat"
@@ -100,17 +98,15 @@ resource "null_resource" "import_win10" {
   }
 }
 
-# Czekanie na uruchomienie maszyny Windows 10
 resource "null_resource" "wait_for_win10_boot" {
   depends_on = [null_resource.import_win10]
 
   provisioner "local-exec" {
-    command     = "echo Czekam na uruchomienie Windows 10... && ping -n 180 127.0.0.1 > nul"
+    command     = "echo Waiting for Windows 10 to boot... && ping -n 180 127.0.0.1 > nul"
     interpreter = ["cmd", "/C"]
   }
 }
 
-# Dołączanie komputera do domeny
 resource "null_resource" "join_win10_to_domain" {
   depends_on = [null_resource.wait_for_win10_boot]
 

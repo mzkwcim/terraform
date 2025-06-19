@@ -1,31 +1,23 @@
-# Skrypt do promocji serwera do kontrolera domeny
-# Zapisz ten plik jako UTF-8 z BOM!
-
-# Rozpocznij logowanie
 Start-Transcript -Path "C:\temp\dc_transcript.log" -Force
 
-Write-Host "========== ROZPOCZECIE PROMOCJI DO DC: $(Get-Date) =========="
+Write-Host "========== STARTED DC PROMOTION: $(Get-Date) =========="
 
-# Parametry domeny
 $DomainName = "corp.local"
 $DomainNetBIOSName = "CORP"
 $SafeModePassword = ConvertTo-SecureString "P@ssw0rd123!" -AsPlainText -Force
 
-# Instalacja roli Active Directory Domain Services
-Write-Host "Instalacja roli AD DS..."
+Write-Host "Installing AD DS role..."
 Install-WindowsFeature -Name AD-Domain-Services -IncludeManagementTools
 
-# Sprawdz czy serwer nie jest juz kontrolerem domeny
 $osInfo = Get-WmiObject -Class Win32_OperatingSystem
 if ($osInfo.ProductType -eq 2) {
-  Write-Host "Serwer jest juz kontrolerem domeny. Promocja pominieta."
+  Write-Host "Server is already a domain controller. Promotion skipped."
   exit 0
 }
 
-Write-Host "Rozpoczecie promocji do kontrolera domeny..."
-Write-Host "Domena: $DomainName"
+Write-Host "Starting domain controller promotion..."
+Write-Host "Domain: $DomainName"
 
-# Promocja serwera do roli kontrolera domeny w nowym lesie
 try {
   Import-Module ADDSDeployment
   Install-ADDSForest `
@@ -42,15 +34,14 @@ try {
     -SafeModeAdministratorPassword $SafeModePassword `
     -Force:$true
 
-  # Ten kod moze nie zostac wykonany, jesli NoRebootOnCompletion to $false
-  Write-Host "Promocja zakonczona. Serwer zostanie uruchomiony ponownie."
+  Write-Host "Promotion completed. Server will restart."
 }
 catch {
-  Write-Host "ERROR podczas promocji: $_"
+  Write-Host "ERROR during promotion: $_"
   Write-Host $_.Exception.Message
   Write-Host $_.ScriptStackTrace
   exit 1
 }
 
-Write-Host "========== KONIEC SKRYPTU: $(Get-Date) =========="
+Write-Host "========== SCRIPT ENDED: $(Get-Date) =========="
 Stop-Transcript
